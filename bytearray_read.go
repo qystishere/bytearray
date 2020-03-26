@@ -64,7 +64,12 @@ func (ba *ByteArray) ReadUint32() (uint32, error) {
 }
 
 // Same as ReadUint32
-func (ba *ByteArray) ReadInt() (int32, error) {
+func (ba *ByteArray) ReadInt() (int, error) {
+	i, err := ba.ReadUint32()
+	return int(i), err
+}
+
+func (ba *ByteArray) ReadInt32() (int32, error) {
 	i, err := ba.ReadUint32()
 	return int32(i), err
 }
