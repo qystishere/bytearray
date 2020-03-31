@@ -4,11 +4,13 @@ import (
 	"encoding/binary"
 )
 
-func (ba *ByteArray) Read() []byte {
-	bb := make([]byte, ba.Size())
-	copy(bb, ba.bytes)
-	ba.bytes = []byte{}
-	return bb
+func (ba *ByteArray) Read(amount uint32) ([]byte, error) {
+	if ba.Size() < amount {
+		return nil, ErrOutOfBounds
+	}
+	bb := ba.bytes[:amount]
+	ba.bytes = ba.bytes[amount:]
+	return bb, nil
 }
 
 func (ba *ByteArray) ReadUint8() (byte, error) {
