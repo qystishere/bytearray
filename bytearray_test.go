@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestByteArrayRead(t *testing.T) {
+func TestByteArrayWriteRead(t *testing.T) {
 	r := require.New(t)
 
 	b := New()

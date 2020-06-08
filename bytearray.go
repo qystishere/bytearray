@@ -5,6 +5,7 @@ import (
 	"compress/flate"
 	"compress/zlib"
 	"errors"
+	"io"
 	"io/ioutil"
 )
 
@@ -30,6 +31,10 @@ func New(b ...byte) *ByteArray {
 	}
 }
 
+func (ba *ByteArray) Buffer() *bytes.Buffer {
+	return bytes.NewBuffer(ba.bytes)
+}
+
 func (ba *ByteArray) Size() uint32 {
 	return uint32(len(ba.bytes))
 }
@@ -51,64 +56,45 @@ func (ba *ByteArray) Bytes() []byte {
 }
 
 func (ba *ByteArray) Compress(algorithm compressAlgorithm) error {
-	var in bytes.Buffer
+	var (
+		buffer bytes.Buffer
+		writer io.WriteCloser
+		err    error
+	)
 	switch algorithm {
 	case CompressAlgorithmZLIB:
-		w := zlib.NewWriter(&in)
-		_, err := w.Write(ba.bytes)
-		if err != nil {
-			return err
-		}
-		err = w.Close()
-		if err != nil {
-			return err
-		}
-		ba.bytes = in.Bytes()
+		writer = zlib.NewWriter(&buffer)
 	case CompressAlgorithmDeflate:
-		w, err := flate.NewWriter(&in, flate.DefaultCompression)
-		if err != nil {
-			return err
-		}
-		_, err = w.Write(ba.bytes)
-		if err != nil {
-			return err
-		}
-		err = w.Close()
-		if err != nil {
-			return err
-		}
-		ba.bytes = in.Bytes()
+		writer, err = flate.NewWriter(&buffer, flate.DefaultCompression)
 	}
-	return nil
+	if err != nil {
+		return err
+	}
+	if _, err = writer.Write(ba.bytes); err != nil {
+		return err
+	}
+	ba.bytes = buffer.Bytes()
+	return writer.Close()
 }
 
 func (ba *ByteArray) Decompress(algorithm compressAlgorithm) error {
+	var (
+		reader io.ReadCloser
+		err    error
+	)
 	switch algorithm {
 	case CompressAlgorithmZLIB:
-		r, err := zlib.NewReader(bytes.NewReader(ba.bytes))
-		if err != nil {
-			return err
-		}
-		bb, err := ioutil.ReadAll(r)
-		if err != nil {
-			return err
-		}
-		err = r.Close()
-		if err != nil {
-			return err
-		}
-		ba.bytes = bb
+		reader, err = zlib.NewReader(bytes.NewReader(ba.bytes))
 	case CompressAlgorithmDeflate:
-		r := flate.NewReader(bytes.NewReader(ba.bytes))
-		bb, err := ioutil.ReadAll(r)
-		if err != nil {
-			return err
-		}
-		err = r.Close()
-		if err != nil {
-			return err
-		}
+		reader = flate.NewReader(bytes.NewReader(ba.bytes))
+	}
+	if err != nil {
+		return err
+	}
+	if bb, err := ioutil.ReadAll(reader); err != nil {
+		return err
+	} else {
 		ba.bytes = bb
 	}
-	return nil
+	return reader.Close()
 }
