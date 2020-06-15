@@ -55,11 +55,10 @@ func (ba *ByteArray) Bytes() []byte {
 	return ba.bytes
 }
 
-func (ba *ByteArray) Compress(algorithm compressAlgorithm) error {
+func (ba *ByteArray) Compress(algorithm compressAlgorithm) (err error) {
 	var (
 		buffer bytes.Buffer
 		writer io.WriteCloser
-		err    error
 	)
 	switch algorithm {
 	case CompressAlgorithmZLIB:
@@ -73,15 +72,15 @@ func (ba *ByteArray) Compress(algorithm compressAlgorithm) error {
 	if _, err = writer.Write(ba.bytes); err != nil {
 		return err
 	}
+	if err = writer.Close(); err != nil {
+		return err
+	}
 	ba.bytes = buffer.Bytes()
-	return writer.Close()
+	return nil
 }
 
-func (ba *ByteArray) Decompress(algorithm compressAlgorithm) error {
-	var (
-		reader io.ReadCloser
-		err    error
-	)
+func (ba *ByteArray) Decompress(algorithm compressAlgorithm) (err error) {
+	var reader io.ReadCloser
 	switch algorithm {
 	case CompressAlgorithmZLIB:
 		reader, err = zlib.NewReader(bytes.NewReader(ba.bytes))
